@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OSCE Timer with Voice Prompts</title>
+<style>
+body{font-family:Arial,sans-serif;text-align:center;padding:30px;background:#f4f4f4}
+#time{font-size:5rem;margin:20px 0}
+#phase{font-size:2rem;font-weight:bold;margin:10px 0}
+button{font-size:1.2rem;padding:10px 20px;margin:5px}
+.reading{color:#b36b00}
+.station{color:#006400}
+.warning{color:#cc0000}
+.finished{color:#8b0000}
+</style>
+</head>
+<body>
+<h1>OSCE Timer</h1>
+<div id="phase" class="reading">READING TIME</div>
+<div id="time">00:00</div>
+<button onclick="startTimer()">Start</button>
+<button onclick="resetTimer()">Reset</button>
+
+<script>
+let startTime=null, interval=null;
+let enterPlayed=false, warningPlayed=false, finishPlayed=false;
+
+function speak(text){
+  window.speechSynthesis.cancel();
+  const msg = new SpeechSynthesisUtterance(text);
+  msg.rate = 0.95;
+  msg.pitch = 1.0;
+  msg.volume = 1.0;
+  window.speechSynthesis.speak(msg);
+}
+
+function update(){
+  const elapsed = Math.floor((Date.now()-startTime)/1000);
+
+  const m = Math.floor(elapsed/60);
+  const s = elapsed%60;
+  document.getElementById("time").textContent =
+    String(m).padStart(2,"0")+":"+String(s).padStart(2,"0");
+
+  const phase = document.getElementById("phase");
+
+  if(elapsed >= 60 && !enterPlayed){
+    enterPlayed = true;
+    phase.textContent = "IN STATION";
+    phase.className = "station";
+    speak("Enter station");
+  }
+
+  if(elapsed >= 510 && !warningPlayed){
+    warningPlayed = true;
+    phase.textContent = "1 MINUTE REMAINING";
+    phase.className = "warning";
+    speak("One minute remaining");
+  }
+
+  if(elapsed >= 570 && !finishPlayed){
+    finishPlayed = true;
+    clearInterval(interval);
+    phase.textContent = "LEAVE STATION";
+    phase.className = "finished";
+    speak("Leave station");
+  }
+}
+
+function startTimer(){
+  if(interval) return;
+
+  // Needed by some browsers to allow speech synthesis
+  speechSynthesis.cancel();
+
+  startTime = Date.now();
+  update();
+  interval = setInterval(update,1000);
+}
+
+function resetTimer(){
+  clearInterval(interval);
+  interval = null;
+  startTime = null;
+
+  enterPlayed = false;
+  warningPlayed = false;
+  finishPlayed = false;
+
+  speechSynthesis.cancel();
+
+  document.getElementById("time").textContent = "00:00";
+  const phase = document.getElementById("phase");
+  phase.textContent = "READING TIME";
+  phase.className = "reading";
+}
+</script>
+</body>
+</html>
